@@ -1,0 +1,10 @@
+{
+  "note": "Recorded by `npm run eval:scam -- --baseline` on the rules as they stood before the vernacular and URL work, before any tuning against this corpus.",
+  "overall": {
+    "recall": 0.5377777777777778,
+    "fpr": 0.032,
+    "precision": 0.968,
+    "heldOutRecall": 0.5476190476190477,
+    "heldOutFpr": 0
+  }
+}

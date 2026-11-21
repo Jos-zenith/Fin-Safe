@@ -1,0 +1,25 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      # build before the tests: a few of them start or inspect the production build
+      - run: npm run build
+      - run: npm test
+      - name: End-to-end (mock mode)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e

@@ -1,0 +1,46 @@
+{
+  "name": "fin-safe",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint src tests",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "test:live": "vitest run tests/live.test.ts",
+    "docs:assumptions": "tsx scripts/gen-assumptions-doc.ts",
+    "eval:scam": "tsx scripts/eval-scam.ts",
+    "docs:translation": "tsx scripts/gen-translation-review.ts",
+    "smoke:live": "tsx scripts/smoke-live.ts",
+    "audit:digest": "tsx scripts/audit-digest.ts",
+    "audit:tamper": "tsx scripts/tamper-demo.ts"
+  },
+  "dependencies": {
+    "lucide-react": "1.76.0",
+    "next": "^16.4.6",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "recharts": "^3.11.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@tailwindcss/postcss": "^4.3.5",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^16.4.6",
+    "tailwindcss": "^4.3.5",
+    "tsx": "4.23.15",
+    "typescript": "^5.9",
+    "vite": "^7.3.8",
+    "vitest": "^5.1.1"
+  }
+}
