@@ -1,236 +1,644 @@
-# ArthClear - see your money clearly, decide with someone accountable (India) - DEMO
+# ArthClear — Financial guidance you can understand
 
-> **Demo with synthetic data.** Not a SEBI-registered adviser or research analyst. No regulated investment advice is given, and no approval inside it constitutes real advice. The adviser shown is a synthetic persona with no registration. No money moves, nothing real is verified, and no real adviser, firm or user has taken part.
+**A prototype of human-accountable, AI-assisted financial guidance for India.**
 
-**AI prepares. A human reviews. You understand. Then you improve.** The UX borrows from the apps people already trust: WhatsApp (chat-style intake, ticks, forwarded-message checker, queue-and-thread adviser console) and UPI apps (avatar row, big amount keypad, success tick, history list, bottom nav, bottom sheets).
+> **Demo with synthetic data.** ArthClear is not a SEBI-registered Investment Adviser or Research Analyst. It does not provide regulated investment advice. No output or approval within this application constitutes regulated financial advice. The adviser shown is a synthetic demo persona, not a real or registered professional. No real money moves, no identity is verified, and no real financial account is connected.
 
-## Who this is for (an assumption, stated)
+**AI prepares. The user understands.**
 
-**Default assumption: the primary customer is an advisory firm**, not the end consumer. The product idea is a workflow that lets a human adviser review an AI-prepared, evidence-backed draft quickly, with an audit trail, while the end customer gets plain-language guidance. Nothing in the repository proves a firm wants this: no firm has used, reviewed or endorsed it, there has been no customer research, and the unit economics in the demo are illustrative and editable. If the real customer is someone else (a bank, a fintech, a consumer app), the same pieces apply but the positioning changes. `APP_NAME` is a single constant (`src/config/brand.ts`), so the name is easy to change.
+[Live Demo](https://arthclear.vercel.app/) · [GitHub Repository](https://github.com/Jos-zenith/Fin-Safe)
 
-**The spine, in the navigation:** **Understand** (what your numbers say, with the evidence behind each) -> **Plan** (a draft, clearly marked, that a human adviser reviews) -> **Review** (what happened, and the audit trail) -> **Improve** (next steps, and what changed when you updated your numbers). Second Opinion (scam-message check) and Market-fall practice are tools, under **Tools**.
+1. Open the live demo.
+2. Select **Priya**.
+3. Complete the short intake.
+4. Review the financial-health dashboard.
+5. Select **Get my plan reviewed**.
+6. Switch to the Adviser role.
+7. Review, edit, complete disclosures, and approve.
+8. Return to the user view and inspect the audit trail.
+9. Try **Second Opinion** with a suspicious message.
+10. Run the market-fall simulation and test the panic-sell guardrail.
+---
 
-## What is real, simulated and not built
+## 1. The problem: financial access has grown faster than financial guidance
 
-| Area | Status | Honest detail |
+India's financial ecosystem has expanded rapidly. More households are aware of investment products, digital platforms have lowered access barriers, and financial information is available through apps, social media and messaging platforms.
+
+But access to financial products does not automatically translate into informed financial decisions.
+
+A person may have savings in one place, loans in another, insurance through an employer, investments across multiple platforms and long-term goals that are not connected to any coherent financial plan. They may know what a SIP or mutual fund is without understanding whether their overall financial position is ready for a particular decision.
+
+At the same time, financial guidance increasingly comes through online creators, informal distributors and forwarded messages. The credibility, incentives and suitability of that information are not always clear.
+
+### What the evidence tells us
+
+| Evidence | Finding | Why it matters |
 |---|---|---|
-| Deterministic calculations (reserve, goals, insurance gap, loans, concentration) | **Real code, placeholder inputs** | Tested, with independent reference simulations. Every assumption is a "demo placeholder, TO_VERIFY" (`docs/ASSUMPTIONS.md`); none has been reviewed by a qualified professional. Taxes are not modelled. |
-| AI text (plan, findings, nudges, answers) | **Simulated by default** | Mock mode uses pre-written templates filled with engine figures. A live model was **run once** (one smoke run of 18 requests against one provider, `docs/live-smoke.md`): 17 of 18 answers passed the checks and 1 fell back to a template. One run is a sample, not an evaluation of quality. `npm run smoke:live` needs your key and a real model id. |
-| Priority ladder (cash flow, reserve, loans, cover, **then** goals) | **Real code, placeholder thresholds** | A month that does not add up, a near-zero reserve, costly or heavy loans, or dependents with almost no cover hold every goal amount back as "later"; the plan opens with the first blocking step. A planning order for discussion, never an instruction to buy, sell or repay anything. `docs/FINANCIAL_LADDER.md` records the before and after of the 25,000 / 18,000 / 10,000 scenario. |
-| Irregular income, missing-data layer, confidence labels, "Check your answers" | **Real code, placeholder thresholds** | Good, usual and bad month income size the reserve against the worst months (defaults are labelled as defaults). What is missing or implausible is listed before results are relied on; every metric carries a Low / Medium / High confidence label (never High while assumptions are unreviewed); a missing key answer shows "Cannot calculate reliably" instead of a number. The customer ticks or fixes each answer before a review is requested, and the adviser sees what was never ticked. Term cover counts loans and years of support, and employer cover is "unknown" until entered. Hospital costs, room-rent limits and policy exclusions are **not modelled**. `docs/INPUT_QUALITY.md`. |
-| Suitability gate (risk questionnaire, consent, every item decided, customer acceptance) | **Demo workflow, not a regulated process** | No case enters the queue without a six-question risk profile and a recorded demo consent (fee, conflicts, what the demo is; **not** an e-signature). Approval is refused until the adviser has decided every plan item and confirmed the risk profile. The customer accepts the reviewed plan or reports an error (it returns flagged). Per-item time-open is recorded as a number, and Metrics warns about possible rubber-stamping by a stated, arguable rule. `docs/SUITABILITY_GATE.md`. |
-| Numeric contract (the model never writes a number) | **Real, enforced** | Schema, number check, substitution, number check again, safety rules; rejected answers fall back to a validated fixture. |
-| Adviser | **Simulated** | One synthetic persona. No registration, no real adviser identity, no real adviser network or service levels. |
-| Case workflow (queue, claim, review, approve, questions, notifications) | **Real in the demo, not production** | Server-side state machine, role checks and SQLite store; see "The demo workflow runs on a server" and `docs/PRODUCTION_GAP.md`. |
-| Authentication | **Demo only. Not secure authentication.** | "Continue as a persona". Nobody's identity is proved. |
-| Audit trail | **Real hash chain** | Tamper-**evident**, not tamper-proof. |
-| Scam check (Second Opinion) | **Real rules, small synthetic evaluation** | Three outcomes, no green tick and no "safe" verdict: **High risk: strong indicators**, **Needs verification: not enough evidence either way** (with a list of what to do, none of it a link or phone number), **No known indicators found** ("That does not mean the message is safe"). Conversation-level signals (an unknown sender claiming to be your adviser, a private-group invitation, a new payee, certainty without the word "guarantee") are weak alone and add up; a lone one is never "no known indicators". Measured on a corpus the authors wrote, in three separately reported kinds of number: **tuned**, **held-out**, and a frozen **adversarial-v1** set that was never tuned on (`docs/scam-eval.md`). None is a real-world detection rate. OCR of screenshots, voice-call reporting and live reputation lookups are not built. |
-| Hindi and Tamil text | **Unreviewed** | Pending native-speaker review (`docs/translation-review.md`). |
-| SEBI registry | **Sample data only** | Labelled "SAMPLE DATA - NOT THE REAL SEBI REGISTRY". Never a verification. |
-| Regulated entity, suitability process, client agreements, fee and conflict disclosures, record retention, AI governance, data-protection review | **Not built** | Items to put before counsel: `docs/PRODUCTION_GAP.md`. |
-| Payments, KYC, account aggregation, investment execution, native apps, real customer research | **Not built / out of scope** | |
-| Metrics and unit economics | **Illustrative** | Adviser Metrics page is labelled "Demo data. Not evidence." `docs/PILOT_PLAN.md` says what a real pilot would measure. |
+| SEBI Investor Survey 2025 | 63% of Indian households were aware of at least one securities-market product, while 9.5% participated in the securities market. The survey covered more than 90,000 households. | Awareness and participation are not the same as informed financial decision-making. |
+| PwC–FICCI, 2026 | Identifies a shift from access-led financial inclusion towards guidance, accountability and long-term household outcomes. | The next challenge is helping people make better-informed decisions, not simply giving them more products. |
+| CFA Institute, *Clicks and Credibility 2.0*, 2026 | In its sample of 48 Indian finfluencers, 6% were SEBI-registered, 33% gave explicit stock recommendations, and 37% did not adequately disclose conflicts of interest. | Financial content can influence decisions without consistently providing the transparency and accountability people need. |
+| RBI financial literacy field survey, 2023 | Found that some respondents with relatively better financial knowledge still lagged in financial behaviour or attitude. | Financial education alone does not guarantee better financial behaviour. |
 
-## Run it
+Sources:
+- [SEBI Investor Survey 2025](https://www.sebi.gov.in/sebi_data/attachdocs/jan-2026/1768910470286.pdf)
+- [PwC–FICCI: Reimagining Financial Distribution — Scale, Trust and Sustainability (2026)](https://www.pwc.in/assets/pdfs/reimagining-financial-distribution-scale-trust-and-sustainability.pdf)
+- [CFA Institute: Clicks and Credibility 2.0 (2026)](https://rpc.cfainstitute.org/research/reports/2026/clicks-and-credibility-2-0)
+- [RBI: Financial Literacy in India — Insights from a Field Survey (2023)](https://www.rbi.org.in/Scripts/BS_ViewBulletin.aspx?Id=21865)
+
+These findings do not mean every non-investor needs an adviser, nor do they establish that ArthClear has solved the problem. They establish a broader gap between financial access, understandable guidance and accountable decision-making.
+
+### Why does this problem persist?
+
+1. **Fragmented financial lives:** Savings, expenses, liabilities, insurance and investments are often considered separately.
+2. **Information without context:** People receive financial content but may not know how it applies to their own circumstances.
+3. **Unclear incentives:** Product commissions, affiliate relationships and sponsorships can make it difficult to assess the neutrality of financial information.
+4. **Limited guidance capacity:** Human-led financial planning can be difficult to deliver consistently and affordably at scale.
+5. **Language and comprehension barriers:** Complex financial explanations are not always accessible to people who are more comfortable in regional languages.
+
+### The opportunity
+
+Build a system where financial information is organised, calculations are explainable, AI assists with preparation, and a human professional remains accountable for the review process.
+
+---
+
+## 2. What is ArthClear?
+
+ArthClear is a prototype of a human-supervised financial guidance platform designed for the Indian market.
+
+It brings together four connected stages:
+
+**Understand → Plan → Review → Improve**
+
+- **Understand:** Build a picture of a person's financial health using their income, expenses, savings, debt, insurance and goals.
+- **Plan:** Prepare an evidence-backed, asset-class-level planning draft using deterministic calculations and AI-assisted explanations.
+- **Review:** Allow a human adviser persona to inspect, edit, question and approve the draft within a clearly labelled demo workflow.
+- **Improve:** Show the user what changed, what needs attention and which assumptions still need verification.
+
+The product is designed around a simple principle:
+
+> **AI should reduce the effort involved in preparing financial guidance, not remove human accountability from financial decisions.**
+
+### Intended customer — a hypothesis
+
+The initial customer hypothesis is a small or mid-sized financial advisory firm.
+
+ArthClear explores whether such firms could use a structured workflow to:
+
+- Organise client financial information.
+- Identify missing or inconsistent inputs.
+- Generate explainable planning drafts.
+- Review and edit those drafts efficiently.
+- Maintain a visible record of decisions and changes.
+- Give clients understandable explanations in their preferred language.
+
+This is an unvalidated business hypothesis. No advisory firm has yet used, reviewed or endorsed the product, and the demo's unit economics are illustrative.
+
+---
+
+## 3. How ArthClear works
+
+### A. Financial-health intake
+
+Users can start with a seeded demo persona or begin with a fresh profile.
+
+The intake collects information about:
+
+- Income and income stability.
+- Essential and discretionary expenses.
+- Emergency savings.
+- Dependents.
+- Existing loans and interest rates.
+- Term and health insurance.
+- Financial goals and time horizons.
+- Existing investments, where provided.
+- Risk behaviour and relevant preferences.
+
+The intake is designed to reduce unnecessary complexity while making missing information visible.
+
+### B. Deterministic financial analysis
+
+The financial engine uses pure TypeScript calculations. It does not rely on an LLM to calculate financial values.
+
+Core calculations include:
+
+- Emergency-fund coverage.
+- Savings rate.
+- Debt-to-income ratio.
+- High-cost debt indicators.
+- Term and health insurance gaps.
+- Goal feasibility under illustrative return scenarios.
+- Portfolio and sector concentration.
+- Fund overlap using a limited local sample dataset.
+- Educational regular-versus-direct expense-ratio comparisons.
+
+Every metric carries its value, unit, formula, inputs, assumptions and assumption references.
+
+The interface also displays confidence and missing-data information. When the inputs are insufficient, the application can indicate that a metric cannot be calculated reliably instead of presenting a misleading number.
+
+**Important:** Financial assumptions and thresholds are placeholders marked `TO_VERIFY`. Taxes are not modelled, and the calculations have not been independently reviewed by a qualified financial professional.
+
+### C. AI-assisted planning
+
+The AI layer can prepare:
+
+- Plain-language explanations of financial findings.
+- Goal-based planning drafts.
+- Prioritised planning considerations.
+- Questions for an adviser.
+- Meeting agendas and follow-up notes.
+- Educational explanations and nudges.
+
+AI output is constrained to general education, factual observations and asset-class-level planning options.
+
+It cannot generate personalised recommendations for individual securities, mutual fund schemes, ETFs, AMCs or crypto tokens.
+
+### D. Human review workflow
+
+A plan is never presented as final simply because an AI task has completed.
+
+The adviser workflow supports:
+
+1. Case queue and priority review.
+2. Client financial snapshot.
+3. Inspection of engine findings and AI-prepared drafts.
+4. Item-level acceptance, editing, rejection or comments.
+5. Required review checklist.
+6. Approval confirmation.
+7. A user-visible reviewed state and audit history.
+
+The adviser in this prototype is a synthetic persona. Approval simulates a review process and is not regulated advice.
+
+### E. Second Opinion
+
+Second Opinion is an educational message-screening tool.
+
+Users can paste a suspicious financial message and receive:
+
+- Quoted warning signs.
+- Explanations of why particular phrases may be concerning.
+- Questions to ask before acting.
+- Suggested verification steps.
+- A risk-oriented summary.
+
+It does not issue a definitive safe/unsafe verdict.
+
+Its three possible outcomes are:
+
+- **High risk: strong indicators**
+- **Needs verification: not enough evidence either way**
+- **No known indicators found** — this does not mean the message is safe.
+
+The default implementation uses rules and pattern matching. It is not a substitute for verifying an intermediary through official channels or seeking professional assistance.
+
+### F. Behavioural guardrail
+
+The market-fall practice flow simulates a portfolio decline and introduces a cooling-off experience when the user attempts a panic-driven action.
+
+It provides options to pause, review the plan or speak with an adviser. It does not execute trades or issue a buy, sell or hold instruction.
+
+---
+
+## 4. Core product principles
+
+| Principle | Implementation |
+|---|---|
+| Explain before recommending | Metrics show formulas, inputs, assumptions and limitations. |
+| AI assists, not decides | AI-prepared plans remain drafts until the demo review workflow is completed. |
+| Human accountability | Adviser actions, edits and approvals are attributed in the audit trail. |
+| No stock tips | The plan schema does not contain a free-text instrument recommendation field. |
+| Numbers must be traceable | Financial figures come from deterministic engine outputs. |
+| Transparency by default | Fees, conflicts, assumptions and product limitations are disclosed. |
+| Language accessibility | English, Hindi and Tamil interfaces and generated content are supported, subject to translation review. |
+| Deliberate friction | High-stakes or emotionally driven actions do not have a one-tap execution path. |
+
+---
+
+## 5. Technical architecture
+
+### Technology stack
+
+- **Frontend:** Next.js App Router, React, TypeScript and Tailwind CSS.
+- **Backend:** Next.js server routes and server-side workflow services.
+- **AI integration:** Provider abstraction supporting Anthropic, Gemini and mock mode.
+- **Validation:** Zod schemas, numeric-integrity validation and output guardrails.
+- **Financial engine:** Pure TypeScript functions.
+- **Database:** SQLite using Node's built-in `node:sqlite` for the demo workflow.
+- **Testing:** Vitest and Playwright.
+- **Charts and icons:** Recharts and lucide-react.
+- **Deployment:** Vercel-compatible frontend; server-side SQLite deployment requires a persistent, single-process environment.
+
+### Architecture overview
+
+```text
+                 USER / ADVISER
+                       |
+                       v
+                NEXT.JS APPLICATION
+                       |
+          +------------+------------+
+          |                         |
+          v                         v
+    FINANCIAL INTAKE           ADVISER CONSOLE
+          |                         |
+          v                         v
+    USER PROFILE               CASE WORKFLOW
+          |
+          v
+   DETERMINISTIC ENGINE
+          |
+          v
+    ENGINE RESULTS
+          |
+          v
+       AI LAYER
+          |
+     +----+------------------+
+     |                       |
+     v                       v
+  ZOD SCHEMA          NUMERIC VALIDATOR
+                             |
+                             v
+                       PLACEHOLDER
+                       SUBSTITUTION
+                             |
+                             v
+                         GUARDRAILS
+                             |
+                             v
+                      VALIDATED DRAFT
+                             |
+                             v
+                      HUMAN REVIEW
+                             |
+                             v
+                   REVIEWED (DEMO)
+                             |
+                             v
+                   HASH-CHAINED AUDIT
+```
+
+### Main code areas
+
+```text
+src/
+├── app/                 Next.js pages and API routes
+├── components/          Shared UI and design-system components
+├── config/              Brand, assumptions, economics and workflow settings
+├── data/                Synthetic personas, samples and source registry
+├── i18n/                English, Hindi and Tamil translations
+├── lib/
+│   ├── ai/              Providers, prompts, schemas, validators and fixtures
+│   ├── engine/          Deterministic financial calculations
+│   ├── scam/            Second Opinion rules and scoring
+│   ├── cases.ts         Case presentation helpers
+│   ├── redact.ts        Free-text redaction
+│   └── storage.ts       Browser demo-data retention
+└── server/
+    ├── api.ts           Server API routing
+    ├── auth.ts          Demo sessions and role checks
+    ├── workflow.ts      Case lifecycle and approval rules
+    ├── retention.ts     Server-side data retention
+    └── store/           CaseStore interface and SQLite implementation
+```
+
+---
+
+## 6. Numeric integrity: AI cannot invent financial figures
+
+A key engineering decision is separating financial computation from language generation.
+
+The LLM is not trusted to calculate or invent financial numbers.
+
+Instead:
+
+1. The deterministic engine calculates financial metrics.
+2. AI receives the structure and references needed to explain those metrics.
+3. AI-generated text uses placeholders such as `{{ef.months}}`.
+4. A server-side renderer substitutes the actual engine values.
+5. The numeric validator checks the text before and after substitution.
+6. Guardrails inspect the final output before it is displayed.
+7. Invalid output is retried once and then replaced with a validated mock fixture.
+
+The validator checks:
+
+- Integers, decimals, percentages, ratios and currency amounts.
+- Indian lakh/crore number grouping.
+- Devanagari and Tamil digits.
+- English, Hindi and Tamil number words.
+- Unresolved placeholders.
+- Numbers that do not match deterministic engine outputs.
+
+The system records rejected output through a `system` audit entry without logging the user's financial profile.
+
+This approach does not prove that every explanation is financially correct. It does establish a controlled boundary around the source of displayed financial figures.
+
+---
+
+## 7. AI modes and current implementation status
+
+**The default application mode is mock.**
+
+No live model is called when the application runs without a configured provider key and model ID.
+
+| Component | Current implementation |
+|---|---|
+| Financial calculations | Deterministic TypeScript implementation; assumptions remain unverified placeholders. |
+| AI explanations and planning | Pre-written fixtures in mock mode; live provider integration available when configured. |
+| Numeric validation | Implemented as part of the AI output pipeline. |
+| Output guardrails | Schema and pattern-based validation. |
+| Adviser workflow | Server-side demo state machine with role checks. |
+| Audit | Append-only, hash-chained audit records. |
+| Second Opinion | Rules-based screening in mock mode. |
+| Tamil and Hindi | UI and fixtures exist; native-speaker review remains pending. |
+| Adviser identity | Synthetic demo persona only. |
+| Financial integrations | Not implemented. |
+
+### Live-model smoke test
+
+The repository documents one live-provider smoke run involving 18 requests:
+
+- 17 outputs passed the validation checks.
+- 1 output fell back to a mock template.
+
+This is evidence that the live integration path has been exercised. It is **not** a statistically meaningful assessment of financial accuracy, response quality, language naturalness or production reliability.
+
+To exercise the live path yourself, configure the required environment variables and run:
 
 ```bash
-npm install
-npm run dev          # http://localhost:3000  (mock mode, no key needed)
+npm run smoke:live
 ```
 
-| Command | What it does |
-|---|---|
-| `npm run build` / `npm start` | Production build / serve |
-| `npm run lint` | ESLint |
-| `npm test` | Vitest: engine, numeric validator, guardrails, fixtures, retention, cases, i18n, contrast |
-| `npm run test:e2e` | Playwright (needs `npm run build` first, one-time `npx playwright install chromium`): the full Priya demo, all 16 intake questions, a **two-browser** customer and adviser run (claim, returned question, reply, approval, live notifications, audit chain), a Tamil scam check, Ask-a-question refusals, the goal explorer, and a no-horizontal-scroll check on every page at 360px and 1280px. It starts its own server with a fresh database |
-| `npm run smoke:live` | **Needs your key.** Runs every AI task against the real provider and writes `docs/live-smoke.md`. Refuses (non-zero exit, no report) without a key. See "AI status" |
-| `npm run eval:scam` | Measures the scam check against `tests/fixtures/scam-corpus.json` and writes `docs/scam-eval.md` (synthetic corpus, optimistic numbers; read the caveats there) |
-| `npm run test:live` | Older live-provider vitest check. Skipped in mock mode |
-| `npm run docs:assumptions` / `npm run docs:translation` | Regenerate `docs/ASSUMPTIONS.md` and `docs/translation-review.md` + `src/i18n/review-status.json` (tests fail if they are stale) |
+See `docs/live-smoke.md` for the recorded run and its limitations.
 
-## Environment (`.env.example`)
+---
+
+## 8. Security, privacy and data retention
+
+ArthClear treats synthetic financial data as sensitive even though the demo does not use real customer financial records.
+
+### Implemented controls
+
+- API keys and session secrets are accessed server-side.
+- Signed, httpOnly and SameSite session cookies.
+- Server-side role and case-access checks.
+- Request-size and input validation.
+- Content Security Policy and other security headers.
+- Redaction of several sensitive patterns in free-text inputs.
+- Logs avoid storing financial profile content and pasted message text.
+- API responses are validated before use.
+- Demo data has explicit clearing and retention controls.
+- Audit events are hash-chained to make changes detectable.
+
+### Demo retention policy
+
+- Browser data defaults to `sessionStorage` and is cleared when the tab closes.
+- Optional device-level remembering is off by default and expires after 24 hours.
+- Idle browser sessions clear demo data after 30 minutes.
+- Server-side demo cases and audit data are purged after 24 hours of inactivity.
+- Users can delete their demo data.
+- Resetting the demo restores seeded data.
+- Raw Second Opinion text is not stored as ordinary browser demo data; the optional missed-scam reporting flow stores a redacted message for a maximum of 24 hours.
+
+### Important security limitations
+
+This is not a completed security audit.
+
+- Demo sign-in does not establish a real person's identity.
+- Names are not reliably removed from free text.
+- Rate limiting is in-memory and per server instance.
+- SQLite is intended for a single-process demo, not a multi-instance production deployment.
+- Hash-chained audit records are tamper-evident, not tamper-proof.
+- Audit digest export is not an independent immutable anchor.
+- Penetration testing, a formal threat model, WAF/DDoS protection, dependency-provenance review and secrets rotation have not been completed.
+
+A production deployment needs a managed database, real authentication, shared rate limiting, independent audit anchoring, a security assessment and a reviewed data-retention framework.
+
+---
+
+## 9. Compliance and responsible financial guidance
+
+ArthClear is designed to demonstrate a safer architecture for AI-assisted financial guidance. It is not itself a regulated financial-advice service.
+
+The prototype deliberately avoids:
+
+- Personalised stock, ETF or mutual-fund scheme recommendations.
+- Buy, sell or hold instructions.
+- Price targets and guaranteed-return claims.
+- Real brokerage or investment execution.
+- Real KYC, Aadhaar handling, bank linking or payment processing.
+- Claims of SEBI registration or regulatory approval.
+
+The plan-generation schema restricts outputs to asset-class-level planning options. AI-generated plans remain drafts until the demo review process is completed.
+
+The adviser checklist includes risk-profile confirmation, suitability considerations, disclosures, fee transparency, client language and explicit acknowledgement that the workflow is a demo.
+
+**A real deployment would require a registered advisory entity or appropriate regulated partner, legal and compliance review, suitability processes, fee and conflict disclosures, record-keeping controls, AI governance and a DPDP Act review.**
+
+The demo approval mechanism is not a substitute for those requirements.
+
+---
+
+## 10. Assumptions and limitations
+
+The following are deliberately disclosed rather than hidden.
+
+| Area | Current limitation |
+|---|---|
+| Financial assumptions | Return, inflation, insurance and expense-ratio constants are placeholders marked `TO_VERIFY`. |
+| Tax | Tax calculations and tax-specific suitability are not modelled. |
+| Insurance | Hospital costs, room-rent limits and policy exclusions are not modelled. |
+| Portfolio analysis | Look-through uses a small fictional sample dataset. |
+| AI quality | Mock mode uses templates; one live smoke run is not a quality evaluation. |
+| Scam screening | Pattern matching can miss novel, cleverly worded or context-dependent scams. |
+| Language | Tamil and Hindi require native-speaker review. |
+| Registry | Adviser registry data is fictional sample data, not the actual SEBI registry. |
+| Authentication | Demo personas do not prove identity. |
+| Storage | SQLite is a single-process demo implementation. |
+| Customer demand | No advisory firm has validated the proposed customer hypothesis. |
+| Unit economics | Metrics and pricing assumptions are illustrative, not measured business results. |
+| Accessibility | Accessibility features exist, but a complete independent WCAG 2.2 AA audit has not been completed. |
+
+### Second Opinion evaluation caveat
+
+The scam-screening evaluation uses a small, author-created synthetic corpus. Tuned, held-out and adversarial results are reported separately in `docs/scam-eval.md`.
+
+These results should not be represented as real-world scam-detection accuracy. OCR, screenshot analysis, voice-call reporting and live reputation lookups are not implemented.
+
+---
+
+## 11. Setup and local development
+
+### Requirements
+
+- Node.js 22.13 or later.
+- npm.
+- Git.
+
+### Installation
+
+```bash
+git clone https://github.com/Jos-zenith/Fin-Safe.git
+cd Fin-Safe
+npm install
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+The application runs in mock mode by default. No AI API key is required to explore the demo.
+
+### Environment variables
+
+Create a `.env.local` file if you want to configure a live provider.
 
 ```env
-AI_PROVIDER=mock        # mock | anthropic | gemini
-AI_MODEL=               # model id lives ONLY here; empty with a real provider => safe fall back to mock
+AI_PROVIDER=mock
+AI_MODEL=
+
 ANTHROPIC_API_KEY=
 GEMINI_API_KEY=
-SESSION_SECRET=         # REQUIRED in production (signs the demo session cookie); dev generates one with a warning
-TRUST_PROXY=            # set to 1 only behind a proxy that overwrites x-forwarded-for
-# optional: ANTHROPIC_BASE_URL / GEMINI_BASE_URL (proxy or test stand-in), AI_TIMEOUT_MS, AI_TOTAL_BUDGET_MS, AI_MAX_TOKENS, AI_RATE_PER_MIN, AI_RATE_GLOBAL_PER_MIN (see .env.example)
+
+SESSION_SECRET=
+TRUST_PROXY=
+
+# Optional provider and runtime configuration
+ANTHROPIC_BASE_URL=
+GEMINI_BASE_URL=
+AI_TIMEOUT_MS=
+AI_TOTAL_BUDGET_MS=
+AI_MAX_TOKENS=
+AI_RATE_PER_MIN=
+AI_RATE_GLOBAL_PER_MIN=
 ```
 
-**Mock mode is the default** and needs nothing. Fixtures exist for every task x persona x language (EN/HI/TA) and pass the same validators as live output. A real provider is used only when its key **and** `AI_MODEL` are set. Settings shows which mode the server is actually in.
-
-### What is real, and what is a template (be honest on stage)
-In the default mock mode there is **no model**. The plan, findings, nudges and answers are pre-written templates filled with numbers from the deterministic engine. That is safe and reliable, and the app says so: every AI-prepared section carries a source label with an expandable "How was this made?" ("Template (mock)" / "Live model" / "Fallback after validation failure"), and Settings shows the server's mode. With a real provider the same screens carry the live label instead.
-
-How the live path is verified, from weakest to strongest:
-
-1. **Wire tests** (`tests/provider-wire.test.ts`, run by `npm test`). The real Anthropic and Gemini adapters send real HTTP to a local **stand-in** server that speaks each vendor's format. They prove the request shape, auth headers, the model id coming from `AI_MODEL`, the token budget, parsing, truncation / timeout / HTTP-error handling, the privacy rule (no name, city or raw figure leaves the server) and the whole validation pipeline over a socket. The stand-in is **not a model**: it only echoes the placeholders the prompt offers, so this proves plumbing, not quality.
-2. **Live smoke run** (needs a key). This is the only thing that proves a real model works:
-
-```powershell
-$env:AI_PROVIDER="anthropic"; $env:AI_MODEL="<model id>"; $env:ANTHROPIC_API_KEY="<key>"; npm run smoke:live
-```
-
-It sends every task for Priya in English, Hindi and Tamil through the real pipeline and writes `docs/live-smoke.md`: provider, per-task success, p50 and max latency, and counts of schema failures, numeric rejections, guardrail rejections and fallbacks. It records counts only (no key, no model id, no profile data, no model text). **With no key it prints "Live path not exercised; run npm run smoke:live with your key.", exits non-zero and writes nothing**, so a passing report cannot exist without a real run. A run **fails** if any task had no answer that survived validation. Expect live output to be rejected more often than fixtures: the validators are strict on purpose.
-
-`npm run test:live` is the older, lighter vitest version of the same check.
-
-### AI status
-
-| | |
+| Variable | Purpose |
 |---|---|
-| Default mode | **Mock.** No model is called. Text is pre-written and filled with engine figures. |
-| Live model | **Run once** (18 requests, English, Hindi and Tamil, one provider; see `docs/live-smoke.md`). 17 of 18 answers survived validation, one Tamil Second Opinion fell back to a template, and one English adviser-copilot answer was rejected by the number check and retried. This shows the live path runs end to end. It does not measure quality, accuracy or whether Hindi and Tamil text is natural. |
-| What *is* tested | The pipeline (schema, number check, safety rules, retry, fallback) against stand-in models that behave well and badly, and the real HTTP adapters against a local stand-in server (`tests/provider-wire.test.ts`, `tests/prompt-quality.test.ts`, `tests/smoke.test.ts`). |
-| What is *not* known | Whether a real model follows the placeholder rule often enough to be useful, how often it is rejected, its latency, and the quality of its Hindi and Tamil. Those need your key and then a human reviewer (native speakers for Hindi and Tamil). |
-| How you can tell | Every AI-prepared text carries a source line with "How was this made?": **Live model**, **Template (mock)**, or **Fallback after validation failure**. |
-| Which outputs were live | **Settings** shows, from this server, "Last N AI outputs on this server: x live, y from templates, z fallback" (counts only; `GET /api/v1/ai/status`). `docs/live-smoke.md` records one live run (18 requests); outside that run the app is in mock mode, so a fresh checkout without a key will show 0 live. |
-| Plan preparation | Asking for a review answers at once; the findings and then the plan are prepared in the background with a visible progress state, each timed on its own (Metrics, adviser only). The case enters the adviser's queue only when the plan is ready. If preparation fails, or the model's answer is rejected and pre-written text is shown (badge "Fallback after validation failure"), a **Try again** button is offered until a reviewer starts. A serverless host that stops work after the reply would need a real job queue (`docs/PRODUCTION_GAP.md`). |
-| Rejection counters | The server counts, per task, live requests that failed a schema, number or safety check (`GET /api/v1/ai/stats`, adviser only, counts only, held in memory). |
+| `AI_PROVIDER` | `mock`, `anthropic` or `gemini`. |
+| `AI_MODEL` | Model identifier supplied through the environment. |
+| `ANTHROPIC_API_KEY` | Server-side key for the Anthropic provider. |
+| `GEMINI_API_KEY` | Server-side key for the Gemini provider. |
+| `SESSION_SECRET` | Required in production for signing demo session cookies. |
+| `TRUST_PROXY` | Set to `1` only behind a trusted proxy that overwrites `x-forwarded-for`. |
+| `AI_TIMEOUT_MS` | Per-call AI timeout. |
+| `AI_TOTAL_BUDGET_MS` | Total budget for attempts and retries. |
+| `AI_MAX_TOKENS` | Optional output-token configuration. |
+| `AI_RATE_PER_MIN` | Per-client AI request limit when supported by the deployment. |
+| `AI_RATE_GLOBAL_PER_MIN` | Global AI request limit. |
 
-## The demo workflow runs on a server (cases, queue, notifications, audit)
+A real provider is used only when its API key and `AI_MODEL` are configured. If the model identifier is missing, the application safely falls back to mock mode.
 
-Cases, plan versions, the adviser queue, notifications, assumption reviews and the audit trail live in a **server-side store**, not in the browser. The browser keeps only the customer's own in-progress answers.
+**Never expose provider keys through client-side environment variables.**
 
-- **Store:** a `CaseStore` interface (`src/server/store/types.ts`) with a **SQLite** implementation on Node's built-in `node:sqlite` (Node 22.13+, no install, no native build), so `npm install && npm run dev` still just works. It is a demo choice, not a production one; `docs/PRODUCTION_GAP.md` says what a real service needs. The database file is `.data/demo.sqlite` (git-ignored).
-- **Sign-in:** "Continue as Priya / Ramesh / Anita / Start fresh / Adviser console" starts a session for a seeded demo account. There are no passwords. The cookie is HMAC-signed, httpOnly and SameSite=Lax, keyed by `SESSION_SECRET` (production refuses to start without it; development generates one and warns). **Demo authentication. Not secure authentication.** It proves nobody's identity.
-- **Shared accounts:** Priya, Ramesh, Anita and the adviser are single seeded accounts; everyone who continues as the same persona shares it until it is reset or purged. "Start fresh" gives a private anonymous account.
-- **Authorization** is checked on the server for every route: a customer sees only their own case; only an adviser lists the queue, claims, edits and approves. Tests cover a customer approving, claiming or reading someone else's case.
-- **State machine** enforced on the server: waiting -> in review -> (question -> reply ->) approved -> accepted by the customer (or an error reported, which returns it flagged). Invalid steps return 409. Two advisers cannot both claim a case. Approval needs the whole checklist (including the assumptions acknowledgement), a recorded consent, a risk profile the adviser has confirmed, and a decision on every plan item (`docs/SUITABILITY_GATE.md`).
-- **Queue:** priority, language, flags, waiting time and an SLA (120 minutes in `src/config/workflow.ts`) with an "overdue" marker. Two seeded cases are waiting (Ramesh is already overdue).
-- **Notifications** reach the other side within the poll interval (5 s; `POLL_MS`) without a reload: a new case, a returned question, a reply, an approval. An unread badge sits on the bell.
-- **Audit:** per-case, append-only, hash-chained (`hash = SHA-256(prevHash + canonical entry)`), with actor id, role and request id. The database refuses updates and deletes of audit rows, and "Audit chain verified" is recomputed on demand. A hash chain makes tampering **detectable**, not impossible.
-- **Retention:** demo data idle for 24 hours is purged at start-up and hourly. "Delete my demo data" removes everything an account holds and keeps one anonymous counter. "Reset demo" re-seeds **only the signed-in account**.
-- **The plan is drafted on the server** from the profile the server holds; a customer cannot supply one.
+---
 
-## Screens (the 25 approved routes, designed at 1440, 1024, 768 and 390 px)
+## 12. Testing and verification
 
-The visual design is the approved wireframe set in `wireframes2/project` (charcoal ground, electric lime for the one primary action, burgundy, lavender and warm ivory; Space Grotesk headings, Inter text). Tokens and component classes are in `src/app/globals.css`; the shared components are `src/components/ui.tsx` and `src/components/ds.tsx`. A "surface" class (`s-dark`, `s-ivory`, `s-lime`, `s-burg`, `s-lav`) redefines the colour variables for everything inside it, so one component is readable on any surface (`tests/palette.test.ts` checks the contrast of each).
+Run the following commands before presenting or modifying the project:
 
-Navigation: customers get a top bar (Home, My Plan, Second Opinion, Learn, Settings) and, on a phone, a bottom bar of five round icons; advisers get Cases, My Queue, Copilot, Audit, Settings. Role, language, the "Demo: synthetic data" pill and the profile menu are always reachable.
-
-| # | Route | What |
-|---|---|---|
-| 01 | `/` | Landing: the promise, two entry points (Start Financial Health Check, Explore Second Opinion), the journey, "Built to be checked", AI vs human cards, the three content labels; sample people (Priya, Ramesh, Anita) and the demo adviser as small shortcuts |
-| 02 | `/intake` | Step list, one question card (the six core questions, the keypad, voice input), and a rail with "What we know so far", why each question is asked and what happens to the data |
-| 03 | `/dashboard` | The first thing to fix (the current step on the financial ladder) with its figures, a plain summary, savings rate, loans, income and spending (table is the primary view), cover gaps, allocation; rail with plan status, data quality (**Add** tasks), priority findings, sources, action center. **See all measures** opens the full list with confidence and the AI-written findings |
-| 04 | `/advice/:caseId` | The AI draft: amber banner ("Do not act on this yet"), dashed amber items with a DRAFT chip, evidence and limits, goal explorer, "Ask a question" |
-| 05 | `/case/:caseId` | Case status: five-step tracker, owner, next step (no invented turnaround time), what to do while waiting, activity, the adviser's question and your reply |
-| 06 | `/case/:caseId/review-requested` | Confirmation with the case reference and time, the "still a draft" panel and what happens next |
-| 07 | `/case/:caseId/approved` | The reviewed plan: green banner, the adviser's accountability card, edited and removed items marked in words, accept, report an error, disclosures |
-| 08 | `/case/:caseId/audit` | What changed, who acted, when: filters, version compare, approval record, hash-chain check, record download. "Tamper-evident, not tamper-proof" |
-| 09, 10 | `/second-opinion`, `/second-opinion/result` | Check a message without an account; warning signs quoted and numbered, questions to ask, what to verify, what the check could not do. Never a green tick or a "safe" verdict |
-| 11 | `/guardrail/market-fall` | A quiet page for a panic moment: facts, what nobody can know, three equal options (pause, review the plan, talk to an adviser). There is no sell path |
-| 12 | `/actions` | Planning steps per finding: mark complete, snooze (3 days, 1 week, a date), dismiss, each with Undo, and "Why you are seeing this" |
-| 13 | `/transparency` | How we earn, conflicts first; figures are placeholders and say so |
-| 14 | `/learn` | Search and topics over the education that exists (emergency fund, SIP, regular vs direct plans, registry check) and the two practice tools |
-| 15 | `/settings` | Language, accessibility (text size, high contrast, reduced motion, screen-reader hints), demo data (reset, clear, remember), AI mode, privacy |
-| 16-20 | `/adviser`, `/adviser/case/:caseId` (+ `/copilot`, `/approve`, `/audit`) | Case table with filters, review with the original AI text beside the adviser's edit (a reason is required for an edit), copilot, the approval checklist and the read-only audit record |
-| 21-24 | `/about`, `/compliance`, `/sources`, `/help` | Product boundary, demo limits and data handling, the registry of assumptions and statistics with their dates (placeholders are flagged), FAQ. The long text on Compliance and Help is in English for now and says so |
-| 25 | any other address, and a failed page | 404 and a recovery-oriented error page; data-unavailable and no-permission states appear where they happen |
-
-Also kept (no wireframe was supplied, so they use the same design system): `/confirm` (Check your answers: every input with its status, an edit button and a tick; asking for a review passes through it), `/agreement` (the risk questionnaire and the demo consent that must precede a case, with no e-signature), `/assumptions` (every assumption with its status; an adviser can mark one reviewed) and `/metrics` (adviser-only, labelled "Demo data. Not evidence."). The first version's addresses (`/home`, `/check`, `/fall`, `/improve`, `/plan`, `/activity`) redirect to the new ones.
-
-### Draft mark, print and the single score
-
-- **Every screen that shows an unreviewed plan** (the draft plan, the action center and the adviser's case view) carries a diagonal "DRAFT · NOT FINAL" mark that repeats on every printed page. It is not clickable and is hidden from screen readers (the words are already in the visible banner). **Printing or saving as PDF** adds a banner ("DRAFT, printed copy. Prepared by AI, not final, not advice") and leaves the navigation out. Once a plan is approved in the demo workflow the mark is gone. There is no separate export screen; print is the only export, and this is what it carries.
-- **The composite score is never alone.** On the dashboard it sits in the same card as the individual checks, behind a disclosure, with the unverified-assumptions tag. In the adviser's snapshot it is behind a disclosure under the individual numbers, with the same tag. When someone asks for it in the Ask box, the answer always includes at least one number behind it (a test checks every persona and language).
-- **No new screens were added** in this pass: the dashboard is shorter, not split.
-
-## Architecture
-
-```
-src/config      assumptions.ts (the registry: EVERY financial constant), workflow.ts (SLA, checklist ids, retention hours),
-                brand.ts (APP_NAME), economics.ts, constants.ts (a read-only view of the registry for the UI)
-src/data        personas, synthetic adviser, 8 Second Opinion samples, sample registry, sources
-src/lib/engine  pure deterministic maths: {id, value, unit, formula, inputs, assumptions, assumptionIds}
-src/lib/engine/explore.ts   goal-explorer maths (corpus at a monthly amount, cost of waiting)
-src/lib/ai      schemas (Zod), prompts, numeric validator, guardrails, mock fixtures + answers, providers, run.ts pipeline
-src/lib/scam    the Second Opinion rules: normalisation, offline link heuristics, scoring
-src/server      api.ts (ONE router), auth.ts, workflow.ts (the state machine), improve.ts (actions), metrics.ts, retention.ts
-src/server/store  the CaseStore interface and its SQLite implementation (hash-chained audit lives here)
-src/app/api/v1  the workflow API (catch-all route into src/server/api.ts); src/app/api/ai is the stateless AI route
-src/lib         cases.ts (pure view helpers over a server case), storage.ts (browser retention), session.ts, redact.ts
-src/i18n        en / hi / ta JSON (parity is tested)
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
 ```
 
-**Pipeline for every AI output (mock or live):** Zod schema -> numeric check on templates -> placeholder substitution -> numeric check on the result -> guardrails. Failure: retry once, then the validated fixture, and a `system` audit entry.
+For browser-level verification:
 
-### The numeric contract
-The model never writes numbers. It writes `{{ef.months}}`-style placeholders; the server substitutes engine values (Indian grouping, e.g. `₹1,20,000`). `validateNumericIntegrity(text, engine, allowlist, phase)`:
-- normalises Devanagari / Tamil / full-width digits;
-- **pre**: any literal number or number word (English, Hindi, Tamil) fails unless it sits in `numericAllowlist.ts`; unknown placeholders fail;
-- **post**: every number must equal an engine value within rounding tolerance; leftover placeholders fail.
-The model only ever sees structure and flags, never the user's figures.
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
 
-### No-security-recommendation rule (enforced twice)
-Prompt rules in `prompts.ts`; then the plan schema: `assetClass` is an enum and every schema is `strict` (no instrument field exists), plus the guardrail layer (security directives, named instruments, price targets, guaranteed-return language, superlatives; EN/HI/TA). A stock-tip question never reaches a model: it gets a refusal and a `system` audit entry.
+For live-provider verification:
 
-Guardrail design: **a word alone never blocks**. Insurance words ("sum assured", "guaranteed renewal"), finance terms ("risk-free rate"), a goal sentence ("your goal is to reach ₹50,00,000"), tax terms ("TCS" as tax collected at source) and the user's own bank ("your HDFC home loan") are legitimate planning text. Blocking needs a promise, a price call, a directive, a projection ("this will double in five years"), or a named instrument paired with an instrument word, an action or a verdict.
-- **Guarantees** are about returns. "Nobody can promise guaranteed returns" passes only because a negator or warning frame sits right next to the phrase. First- and second-person promises ("I promise...", "as promised...", "you will definitely earn...") are always blocked.
-- **Price calls** need a price subject ("stock price will reach..."), so a goal sentence is safe. Hindi "टारगेट" and Tamil "இலக்கு" mean goal and are only blocked inside "target price" phrases.
-- **`best`** is blocked as a product claim; "in your best interest" and "best practices" pass.
-- **Named companies**: in anything personalised, blocked next to an instrument word ("HDFC mutual fund"), an action ("move your money into SBI Bluechip") or a verdict ("Tata Motors looks attractive"). In Second Opinion explanations (education text) a neutral mention passes. Crypto tokens are always blocked in personalised text.
-- **The refusal** targets specific securities and price predictions, in English, Devanagari, Tamil script and romanised Hinglish / Tamil ("kaun sa share lun", "SBI share lena chahiye kya"). Questions about a house, insurance, a loan, gold, equity as an asset class, or "what is a mutual fund?" are answered.
-- **Numeric check** accepts everyday idioms ("no one", "one of the risks") and Hindi "एक" used as an article; a counted quantity ("एक प्रतिशत", "one percent") still fails.
-- Adviser edits go through the same guardrails; a blocked edit is not saved and is logged as `system`.
-- Every sentence that once misfired is a row in `tests/corpus.test.ts`. When you tune a rule, add the row first, so the rule's history is kept in the repo.
+```bash
+npm run smoke:live
+```
 
-## Security notes (a demo, not a security audit)
+For the synthetic scam corpus:
 
-- **Headers** (`next.config.ts`): Content-Security-Policy (same-origin by default, `frame-ancestors 'none'`, no plugins, no foreign script hosts), `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, a restrictive `Permissions-Policy` (microphone only for this origin, for optional voice input). Next.js needs inline scripts, so `script-src` still has `'unsafe-inline'`; a nonce-based policy is future work.
-- **Secrets:** keys and `SESSION_SECRET` are read on the server only. `tests/bundle-secrets.test.ts` builds the app with sentinel secrets in the environment and fails if any sentinel value, or any key-shaped string, appears in the build output.
-- **Logs** hold task, status, latency and reasons only (never profile data, pasted text or error messages). Tested.
-- **Limits:** the API rejects oversized bodies (413), unsupported languages and unknown fields (400). Tested.
-- **Rate limiting** sits behind a `RateLimiter` interface; the in-memory implementation trusts `x-forwarded-for` only when `TRUST_PROXY=1`. A real deployment needs a shared store and a platform-verified address.
-- **Demo authentication. Not secure authentication.** See "The demo workflow runs on a server".
-- **`npm audit`, before and after the test-runner upgrade (2026-11-20).** *Before:* production dependencies (`npm audit --omit=dev`) **0** vulnerabilities; including development dependencies **3** (1 moderate, 2 critical), all in the test runner chain (`vitest`, `@vitest/mocker`, `tinypool`) and none in the application bundle. *After:* `vitest` moved from 3 to **5.1.1** with an explicit install (not `npm audit fix --force`), `vite` held on the 7.x line; both `npm audit` and `npm audit --omit=dev` now report **0** vulnerabilities, and all tests pass. The upgrade needed two changes: the config became an ES module (`vitest.config.mts`) and the **test pool is `vmForks`**, because Vitest 5's default pool failed every file here ("failed to find the runner", reproduced with a one-line test) while the VM pools pass. **The root cause was not found**; `vitest.config.mts` says so, and the default pool should be re-checked on the next upgrade. Re-run `npm audit` before relying on this.
-- **Free text and redaction.** Before a pasted message or a typed question can reach a model it is redacted (also inside the AI pipeline, whatever the caller did): link query strings (with or without a scheme), emails, UPI handles, PAN, IFSC codes, Aadhaar-shaped and other long numbers (phone and account numbers, in Hindi and Tamil digits too), short account numbers that say "A/c" or "account", and a one-time code or PIN typed into the text. **Names are not removed reliably**: only a name after a greeting or "my name is" is caught. A visible notice says "Do not type names, account numbers or ID numbers" above the Ask box and the message checker, in all three languages, and says that names cannot be removed reliably.
-- **Audit anchoring.** The SHA-256 chain makes tampering detectable only while the whole chain is not rewritten. `GET /api/v1/audit/digest` (advisers) shows a digest of every chain's head, the Metrics page shows it with an export button, and `npm run audit:digest` writes `audit-digest-YYYY-MM-DD.json` next to the database, **once per day and never overwriting an earlier file**; the retention timer also writes it. A test shows a chain rewritten with every hash recomputed still verifies on its own but fails the digest check. **This is an export, not an anchor**: production must keep the digest in independent, immutable storage (`docs/PRODUCTION_GAP.md`). Nothing is sent anywhere.
-- **Database.** The embedded SQLite store is for local, single-process use. The server prints a warning at start-up when its environment looks serverless or multi-instance. `docs/POSTGRES_MIGRATION.md` maps every `CaseStore` method to the work a Postgres store needs; it is **not implemented**.
-- **Not done:** penetration test, threat model, dependency-provenance review, WAF, DDoS protection, secrets rotation. See `docs/PRODUCTION_GAP.md`.
+```bash
+npm run eval:scam
+```
 
-## Retention (PRD 7.6)
-- Default `sessionStorage`, one namespace `fsdemo:v1:`. Gone when the tab closes.
-- "Remember my demo on this device" is **off by default**; when on, `localStorage` with a 24h `expiresAt`, purged on load.
-- 30 minutes idle -> notice and data cleared.
-- "Clear demo data" removes every namespaced key from both storages (tested); "Reset demo" restores seed data (separate).
-- Language is the only preference kept beyond the session.
-- Never stored: API keys, raw AI responses, or Second Opinion text (it lives in component state only). The one exception is the person's own choice: "Report a missed scam" saves the **redacted** message in this browser for at most 24 hours (capped at 50, removed by "Delete my demo data"). Names are removed on a best-effort basis only.
-- Server: the workflow keeps cases, plan versions, the audit trail, notifications, actions and metric events in the SQLite store described above (demo data, purged after 24 hours idle, deletable on request). There is no third-party analytics. Logs carry only task, status, latency and rejection reasons.
+### What the test suite is intended to cover
 
-**The 24-hour purge is a demo policy, not a record-retention schedule**, and Settings says so. A real deployment would need consent, data minimisation, a retention schedule reconciled with whatever record-keeping duties apply, and a DPDP Act compliance review, with qualified counsel (`docs/PRODUCTION_GAP.md`).
+- Deterministic financial-engine calculations.
+- Numeric-integrity validation.
+- Rejection of invented financial figures.
+- AI schema and output guardrails.
+- Mock fixture validation.
+- English, Hindi and Tamil text handling.
+- Case lifecycle and adviser permissions.
+- Audit-chain integrity.
+- Browser data retention and clearing.
+- Responsive layouts and horizontal-overflow checks.
+- End-to-end customer and adviser workflows.
 
-## Compliance design
-Every badge pairs an icon with text. "Approve (demo)" stays disabled until all seven checklist items (including "I have reviewed the assumptions marked unverified" and "I understand this is a demo workflow and not real advice.") are ticked, then asks for confirmation with the demo sentence. The adviser has no registration field; the UI shows "No registration (demo persona)". The "How we earn" banner appears on the plan, approval screen and recommendation-like screens. No hardcoded statistics: anything statistical comes from `src/data/sources.ts` with source and as-of (all `TO_VERIFY`).
+The repository's CI workflow runs linting, type checking, unit tests, builds and Playwright tests. Run the commands locally to verify the current checkout; this README does not claim a fresh test run for every environment.
 
-## What this demo is not
-- **Multi-party only as a demo.** Customer and adviser are separate server-side sessions (two browsers work and are tested), but the adviser is one synthetic persona, sign-in proves nobody's identity, and the store is a single-process SQLite file. A real service needs real identity, a managed database, real staffing and service levels (`docs/PRODUCTION_GAP.md`).
-- **No real data.** The first result needs six answers; optional "Improve accuracy" questions add more. Portfolio look-through uses a small fictional fund table; there is no account-aggregator or CAS import.
-- **What the goal maths does and does not do.** Goal amounts are in today's money and raised for inflation, savings already set aside for a goal are counted with growth, and returns are after an assumed fee. **Taxes are not modelled**, and every constant is an unverified placeholder (`docs/ASSUMPTIONS.md`). The evidence drawer says so.
-- **Product reality.** Asset-class-only outputs are safe, but much of a user's value sits in mapping to actual products, which this system refuses to do by design. The adviser Metrics page carries an illustrative unit-economics calculator with made-up defaults; the real economics (adviser time per plan against `₹X/month`, and who pays) are unmeasured until a pilot runs (`docs/PILOT_PLAN.md`).
+---
 
-## Regulatory reality (not legal advice)
-In India, personalised advice that a human adviser reviews and approves is a regulated activity (registration, suitability and risk profiling, fee rules, record-keeping). "Approve (demo)" beside an empty registration field is a clean demonstration device, not a compliant process. A real business needs to be, or partner with, the registered entity, and to have counsel review the product, the disclosures and the data handling (including DPDP Act duties).
+## 13. Product acceptance criteria
 
-## Known limits
-- **"Ask a question" in mock mode is topic routing, not conversation.** It matches keywords (English, romanised Hindi, Hindi, Tamil) to about 18 answer templates built from the user's numbers or plain education, refuses named securities and market predictions, and says what it *can* answer when it does not understand. Each answer is labelled as a template. A live model, behind the same validators, is what makes it open-ended.
-- **Vernacular scam coverage is tested but written by the build agent.** `tests/vernacular.test.ts` covers Tamil, Hindi, romanised Hindi and romanised Tamil scams and warnings, including Tamil / Devanagari digits. The messages are not from native speakers or real scam reports; add real ones as they are collected.
-- **Second Opinion is rule-based in mock mode.** It works sentence by sentence (so a warning notice such as "beware of guaranteed returns, never share your OTP" is not flagged, and "we are SEBI registered" does not switch off the unregistered-adviser flag). It covers investment pitches plus credential requests (OTP / PIN), phishing links, payments to a personal UPI ID and pre-IPO offers, in English, Hindi, Tamil and romanised Hindi. It is still pattern matching: a cleverly worded or new kind of scam can slip past it, and fake apps are only caught through the link and credential rules. A live model does better, behind the same safety checks.
-- **Guardrails are pattern-based.** The named-company list is a deny-list, not exhaustive. Treat the guardrail as a safety net behind the schema, not a substitute for it. Live output will still sometimes show a "this part was removed" sentence; that is the trade for safety, and the live smoke test reports how often it happens.
-- **Live latency is unmeasured.** There is no streaming. Each model call has a timeout (`AI_TIMEOUT_MS`, default 10s per the PRD) and all attempts share a total budget (`AI_TOTAL_BUDGET_MS`) so a retry cannot overrun your host's function limit. A timeout or a truncated answer is not retried; it is recorded (`timeout` / `truncated`) and the fixture is used. Hindi and Tamil plan packs get the largest output budget (`AI_MAX_TOKENS` overrides it), but a long Indic plan pack may still need a longer timeout on a host that allows it. Check this with `npm run test:live` before a live demo.
-- **Redaction.** See "Free text and redaction" under Security notes. **Names are not removed reliably**; the pages ask people not to type or paste personal details.
-- **Rate limit is a demo.** It only applies when a real (paid) model is configured; mock answers are free and never limited. It is in-memory and per server instance. Without `TRUST_PROXY=1` there is no per-client bucket (so a room of people is not throttled together); a global cap (`AI_RATE_GLOBAL_PER_MIN`, default 300) always applies, and over-limit requests silently get fixtures, so size it for your audience. Production needs a shared store and a platform-verified client IP.
-- **Not independently verified:** Hindi and Tamil wording (written by the build agent, needs a native-speaker review) and real-device speed (the 3-second first-load target was not measured on a phone).
-- **Dependencies:** `lucide-react` is pinned to an exact version; the others use caret ranges locked by `package-lock.json`. CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests, build and the Playwright tests on every push.
+The prototype is intended to satisfy the following end-to-end requirements:
 
-## Defaults chosen for the open items (PRD 16)
-- Insurance, health-baseline, return, inflation and expense-ratio constants: the registry in `src/config/assumptions.ts`, all `TO_VERIFY`.
-- Name: `APP_NAME = "ArthClear"` in `src/config/brand.ts`; the mark (a lime tile with a burgundy parallelogram) is drawn in CSS (`.ac-logo-mark`) and in `src/app/opengraph-image.tsx`. Internal identifiers (the `fsdemo:v1:` storage namespace, the audit-digest file kind, the package name) keep their first-version names so saved data and records stay readable.
-- Provider: `mock`. Demo fee: `₹X/month`. Sample portfolio / lookup data: fictional (`src/data/lookup.ts`).
-- Ramesh and Anita start as cases already waiting in the adviser queue, so the console is never empty.
-- Fonts are loaded from Google Fonts with a system fallback (Nirmala UI covers Tamil and Devanagari offline).
+1. A new visitor can complete the Priya demo journey from landing to `REVIEWED (DEMO)` within the target three-minute flow.
+2. Switching to Tamil or Hindi changes the relevant interface and AI-generated sections.
+3. The adviser cannot approve without completing the required checklist and confirmation.
+4. The synthetic-adviser disclaimer is visible wherever the demo review is represented.
+5. Model identifiers are configured through environment variables rather than hardcoded into application code.
+6. Numeric validation rejects invented values and falls back to validated fixtures.
+7. The plan schema cannot carry personalised instrument recommendations; stock-tip requests are refused and logged.
+8. Second Opinion identifies the expected warning samples without classifying legitimate educational examples as high risk.
+9. The audit timeline exposes the difference between the AI draft and the demo-reviewed version.
+10. Browser data retention, idle clearing and explicit deletion work as documented.
+11. Resetting the demo restores the seed data.
+12. Build, lint and unit-test commands pass.
+13. The README documents setup, environment variables, mock mode, architecture, numeric integrity, retention and compliance boundaries.
+
+These are acceptance requirements, not a claim that every item has been independently revalidated on every deployment. Refer to the automated tests and project documentation for the current evidence.
+
+---
+
+## 14. Roadmap
+
+### Near-term validation
+
+- Conduct structured interviews with registered investment advisers and small advisory firms.
+- Test whether the adviser workflow reduces preparation and review effort.
+- Have an independent financial professional review the calculation assumptions.
+- Validate Tamil and Hindi explanations with native speakers.
+- Evaluate Second Opinion using independently collected, consented and appropriately anonymised examples.
+- Measure completion time, user comprehension, adviser review time and correction rates.
+
+### Production-readiness work
+
+- Integrate a managed database and production-grade authentication.
+- Establish a regulated advisory partnership or operating entity.
+- Complete suitability, compliance and record-retention design.
+- Add independent security testing and audit anchoring.
+- Review data processing, consent and DPDP Act obligations.
+- Establish real pilot economics and service-level expectations.
+
+### Longer-term direction
+
+Move from a financial-health prototype towards a dependable workflow that helps regulated professionals deliver understandable, evidence-backed and accountable financial guidance at scale.
+
+---
+
+## 15. The central idea
+
+India does not need another application that simply produces more financial content or more investment suggestions.
+
+It needs better ways to turn financial information into decisions people can understand, question and review.
+
+ArthClear explores one possible approach:
+
+**Deterministic calculations for financial facts. AI for preparation and explanation. Human review for accountability. Clear records for trust.**
+
+*Built as a demonstration of responsible, human-accountable AI-assisted financial guidance.*
